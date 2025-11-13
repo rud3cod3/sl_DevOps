@@ -1,0 +1,169 @@
+Here’s a detailed, step-by-step guide to deploying a WordPress site on an AWS EC2 instance, including both the quick-launch method (using a preconfigured image) and the manual approach (building your own web stack).
+
+## Part 1: Deploy WordPress via AWS Marketplace AMI (Recommended for Most Users)
+
+### Step 1: Launch an EC2 Instance with WordPress
+
+- Go to the AWS Management Console.
+- Navigate to the **EC2 Dashboard** and click **Launch Instance**.
+- In the **Application and OS Images (Amazon Machine Image, AMI)** tab, type “WordPress” in the search box.
+- Choose a reputable AMI, such as **WordPress Certified by Bitnami and Automattic**.
+- Click **Select** to use this AMI.
+
+
+### Step 2: Instance Configuration
+
+- Choose an instance type, e.g., **t2.micro** (fits the free tier for low-traffic sites).
+- Configure network/VPC settings if you have custom requirements (default works for most users).
+- Add storage (default is typically enough for a simple site, but you can increase it).
+- Assign or create a new key pair (download and keep it safe—needed for SSH access).
+
+
+### Step 3: Set Security Groups (Firewall Rules)
+
+- Add rules for:
+    - **Port 22 (SSH)**: Your IP address only (for security).
+    - **Port 80 (HTTP)**: Anywhere (to allow web traffic).
+    - **Port 443 (HTTPS)**: Anywhere (for secure web traffic).
+
+
+### Step 4: Launch the Instance
+
+- Review everything.
+- Click **Launch**.
+
+
+### Step 5: Find Public IP / DNS
+
+- In the EC2 dashboard, select your new instance.
+- Locate the **Public IPv4 address** or DNS name.
+
+
+### Step 6: Access Your WordPress Site
+
+- Open a web browser and go to:
+
+```
+http://[Your-EC2-Public-IP]/
+```
+
+- You should see the WordPress welcome/setup page.
+
+
+### Step 7: Retrieve Admin Password
+
+- SSH into your new instance:
+
+```bash
+ssh -i /path/to/your-key.pem bitnami@[Public-IP]
+```
+
+- Find the password:
+
+```bash
+cat ~/bitnami_application_password
+```
+
+- Use this password to log in at:
+
+```
+http://[Your-EC2-Public-IP]/wp-admin
+```
+
+- Username is often `user` or `user@example.com` (check setup notes on AWS).
+
+
+### Step 8: Optional Configuration
+
+- Set up your domain DNS (e.g., via Route 53 or your registrar).
+- Install SSL (Bitnami usually includes built-in scripts for this, or use Let's Encrypt).
+
+
+## Part 2: Manual Deployment (Install LAMP/LEMP Stack Yourself)
+
+### Step 1: Launch a Basic Linux Instance
+
+- Launch an **Ubuntu Server** or **Amazon Linux** instance from the EC2 dashboard.
+
+
+### Step 2: SSH Into Your Instance
+
+```bash
+ssh -i /path/to/your-key.pem ubuntu@[Public-IP]
+```
+
+
+### Step 3: Update Packages
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+
+### Step 4: Install Web Server, PHP, MySQL
+
+```bash
+sudo apt install apache2 mysql-server php php-mysql libapache2-mod-php -y
+```
+
+
+### Step 5: Download and Configure WordPress
+
+```bash
+cd /tmp
+wget https://wordpress.org/latest.tar.gz
+tar -xzf latest.tar.gz
+sudo mv wordpress/* /var/www/html/
+sudo chown -R www-data:www-data /var/www/html
+```
+
+
+### Step 6: Set Up MySQL Database
+
+```bash
+sudo mysql
+```
+
+Inside the MySQL prompt:
+
+```sql
+CREATE DATABASE wordpress;
+CREATE USER 'wpuser'@'localhost' IDENTIFIED BY 'yourpassword';
+GRANT ALL PRIVILEGES ON wordpress.* TO 'wpuser'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+
+### Step 7: Configure WordPress
+
+- Navigate to `http://[Your-EC2-Public-IP]/` and follow the web installer.
+- Use the database name, user, and password you just created.
+
+
+### Step 8: Secure Your Site
+
+- Set up a firewall (e.g., allow only ports 22, 80, 443).
+- For SSL: use **Certbot** with Let’s Encrypt.
+
+```bash
+sudo apt install certbot python3-certbot-apache
+sudo certbot --apache
+```
+
+- Follow prompts to secure your site with HTTPS.
+
+
+## Part 3: Domain and DNS (Optional but Recommended)
+
+- Buy/register a domain (AWS Route 53 or other registrar).
+- Point its DNS A record at your EC2 instance’s public IP.
+
+
+## Troubleshooting
+
+- If you can’t access via browser, ensure your security group allows port 80 (and 443 for SSL).
+- If `wp-admin` login isn’t working, double-check the admin password.
+
+**This process gets WordPress running on AWS EC2 with either a quick-launch or full manual setup.** Using the Marketplace AMI is far faster and easier for most users; the manual way gives you maximum flexibility. If you have questions about specific steps—like uploading your own theme, performance settings, or backups—let me know exactly what you need and I can provide in-depth help!
+
