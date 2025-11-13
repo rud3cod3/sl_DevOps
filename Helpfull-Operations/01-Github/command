@@ -1,0 +1,1 @@
+GIT_SSH_COMMAND="ssh -i ~/.ssh/github/rud3cod3/rud3cod3-sshkey" git push origin main
