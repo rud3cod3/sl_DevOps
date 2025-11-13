@@ -1,0 +1,283 @@
+# ================================
+# LINUX SYSTEM ADMIN CHEAT SHEET
+# ================================
+# Covers boot process, package management, user, file, shell, and system utilities
+# by agney-patel
+
+# ============================================================
+# LINUX BOOT PROCESS
+# ============================================================
+# 1. BIOS/UEFI performs POST (Power-On Self Test)
+# 2. Bootloader (GRUB) loads kernel into memory
+# 3. Kernel initializes hardware, mounts root filesystem
+# 4. Starts PID 1 → systemd (or older sysvinit)
+# 5. systemd starts target units → multi-user or graphical mode
+
+# Check init system:
+ls -l /sbin/init         # → usually points to /lib/systemd/systemd
+
+# Check runlevel (targets)
+runlevel
+systemctl get-default
+systemctl set-default <target>     # e.g., graphical.target, multi-user.target
+
+# Runlevel → Target Mapping:
+# 0 → poweroff.target
+# 1 → rescue.target
+# 2,3,4 → multi-user.target
+# 5 → graphical.target
+# 6 → reboot.target
+
+
+# ============================================================
+# SYSTEM INFORMATION
+# ============================================================
+lscpu             # CPU info
+lsblk             # Block devices (disks/partitions)
+lsusb             # USB devices
+lspci             # PCI devices
+lshw              # Detailed hardware info
+lsmem             # Memory blocks
+free -m           # Memory usage (in MB)
+uname -a          # Kernel version & architecture
+uptime            # Load average and system uptime
+hostnamectl       # Show OS release and hardware model
+df -h             # Filesystem usage
+du -sh <dir>      # Directory size summary
+file <path>       # Identify file type
+
+
+# ============================================================
+# USER & SESSION MANAGEMENT
+# ============================================================
+id                # Show current user & group IDs
+who               # Who is logged in
+w                 # Logged-in users + running processes
+last              # Login history
+lastb             # Failed login attempts (from /var/log/btmp)
+sudo -l           # List sudo privileges for current user
+passwd <user>     # Change password
+
+
+# ============================================================
+# PACKAGE MANAGEMENT
+# ============================================================
+
+# --- RPM (Red Hat-based systems: CentOS/RHEL/Fedora) ---
+rpm -ivh package.rpm      # Install
+rpm -e package             # Uninstall
+rpm -Uvh package.rpm       # Upgrade
+rpm -q package             # Query installed package
+rpm -Vf /path/to/file      # Verify which package owns a file
+
+# --- YUM / DNF ---
+yum repolist               # Show enabled repos
+yum search <pkg>           # Search for package
+yum install <pkg>          # Install package
+yum remove <pkg>           # Remove package
+yum update                 # Update all packages
+dnf check-update           # (Newer distros)
+
+# --- APT / DPKG (Debian/Ubuntu) ---
+apt update                 # Refresh package index
+apt upgrade                # Upgrade all upgradable packages
+apt install <pkg>          # Install package
+apt remove <pkg>           # Remove package
+apt show <pkg>             # Package details
+dpkg -i pkg.deb            # Install .deb manually
+dpkg -r pkg.deb            # Remove package
+dpkg -l | grep <pkg>       # List installed packages
+dpkg -s <pkg>              # Package status
+dpkg -p <path>             # Verify package archive
+
+
+# ============================================================
+# FILES, ARCHIVES, AND SEARCH
+# ============================================================
+
+# --- Basic Listing ---
+ls -lh                    # Human readable file sizes
+ls -la                    # All files, including hidden
+du -sh *                  # Folder size summary
+
+# --- Archiving ---
+tar -cf name.tar /path/to/files       # Create tar
+tar -xf name.tar                      # Extract tar
+tar -czf name.tar.gz /path            # Compress (gzip)
+tar -xzf name.tar.gz                  # Extract compressed tar
+
+# --- Find and Locate ---
+find /home/user -name city.txt
+find / -type f -name goodmorning.txt
+find /etc -type f -mtime -1           # Files modified in last 1 day
+
+# 'locate' is faster (uses DB):
+sudo updatedb                        # Update mlocate DB
+locate filename
+
+# --- Search in File ---
+grep "pattern" filename
+grep -r "pattern" /path/to/dir        # Recursive search
+grep -i "pattern" file                # Case-insensitive
+grep -n "pattern" file                # Show line numbers
+
+# Combine with tee (log output to file + screen):
+command | tee output.log
+
+
+# ============================================================
+# NETWORKING
+# ============================================================
+ip a                      # Show all network interfaces
+ip r                      # Routing table
+ss -tuln                  # Listening ports
+netstat -tuln             # (Older systems)
+ping -c 4 google.com      # Connectivity test
+traceroute google.com     # Route path
+dig example.com            # DNS query
+nslookup example.com       # DNS query (basic)
+
+# /etc/hosts → static hostname mapping
+# /etc/resolv.conf → DNS nameservers
+# /etc/nsswitch.conf → order of resolution:
+#   hosts: files dns
+# means: check /etc/hosts first, then DNS
+
+
+# ============================================================
+# SYSTEMD SERVICE MANAGEMENT
+# ============================================================
+systemctl status ssh
+systemctl restart ssh
+systemctl enable nginx
+systemctl disable nginx
+systemctl daemon-reload
+journalctl -xe             # Show detailed logs
+journalctl -u ssh.service  # Logs for specific service
+
+
+# ============================================================
+# PERMISSIONS & OWNERSHIP
+# ============================================================
+chmod 755 file             # rwxr-xr-x
+chmod 644 file             # rw-r--r--
+chown user:group file      # Change owner and group
+chgrp group file           # Change group only
+umask                      # Default permission mask
+sudo visudo                # Safely edit sudoers
+
+
+# ============================================================
+# TIPS
+# ============================================================
+# - Use 'man <command>' for full details
+# - 'history' + '!<num>' to repeat command
+# - Use aliases for repetitive tasks:
+alias ll='ls -lh'
+alias gs='git status'
+# - Always backup before editing system files
+# - Use 'vim' or 'less' for configuration edits
+
+# ============================================================
+# IPTABLES
+# ============================================================
+
+# Flush all existing rules
+sudo iptables -F
+
+# Set default policies
+sudo iptables -P INPUT DROP
+sudo iptables -P FORWARD DROP
+sudo iptables -P OUTPUT ACCEPT
+
+# Allow loopback
+sudo iptables -A INPUT -i lo -j ACCEPT
+
+# SSH on host-only network
+sudo iptables -A INPUT -i enp0s8 -p tcp --dport 22 -j ACCEPT
+
+# HTTP on NAT network
+sudo iptables -A INPUT -i enp0s3 -p tcp --dport 80 -j ACCEPT
+
+# Allow ping on host-only
+sudo iptables -A INPUT -i enp0s8 -p icmp -j ACCEPT
+
+# View rules
+sudo iptables -L -v -n
+
+# Save rules permanently
+sudo apt install iptables-persistent
+sudo netfilter-persistent save
+
+# ==============================================================
+# COMMAND USED IN PRACTICLE
+# ==============================================================
+sudo iptables -A INPUT -p tcp -m tcp -s 192.168.1.0/24 --dport 22 -j ACCEPT
+
+# Flush old rules
+sudo iptables -F          " Remove all existing rules
+
+# Set default policies
+sudo iptables -P INPUT DROP     " Block all incoming packets by default
+sudo iptables -P FORWARD DROP   " Block packets routed through VM
+sudo iptables -P OUTPUT ACCEPT  " Allow all outgoing packets
+
+# Loopback interface
+sudo iptables -A INPUT -i lo -j ACCEPT    " Allow local communication
+
+# SSH from office subnet on host-only
+sudo iptables -A INPUT -i enp0s8 -p tcp -m tcp -s 192.168.1.0/24 --dport 22 -j ACCEPT
+" -i enp0s8 = host-only interface
+" -p tcp -m tcp = match TCP packets
+" -s 192.168.1.0/24 = source subnet (office LAN)
+" --dport 22 = SSH port
+" -j ACCEPT = allow the packet
+
+# Ping (host-only)
+sudo iptables -A INPUT -i enp0s8 -p icmp -j ACCEPT    " Allow ICMP ping
+
+# HTTP from NAT interface
+sudo iptables -A INPUT -i enp0s3 -p tcp -m tcp --dport 80 -j ACCEPT
+" -i enp0s3 = NAT interface
+" --dport 80 = HTTP port
+" -j ACCEPT = allow packets
+
+# View rules
+sudo iptables -L -v -n    " List rules with counts
+
+# Save rules permanently
+sudo netfilter-persistent save    " Persist rules across reboot
+
+
+# ===============================================================
+# SYSTEMD HELP 
+# ===============================================================
+
+# Use this command to edit service file directly
+systemctl edit <Service_file_name> --full
+
+# To see current runlevel
+systemctl get-default
+
+# To set it to something other
+systemctl set-default multi-user.target
+
+# To list all units
+systemctl list-units --all
+
+# To list active units
+systemctl list-units
+
+# ================================================================
+# JOURNALCTL HELP
+# ================================================================
+
+# List all log
+journalctl
+
+# All logs from boot
+journalctl -b
+
+# To look log for specific srevice
+# journalctl -u UNIT
+# journalctl -u docker.service 

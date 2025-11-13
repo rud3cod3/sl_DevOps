@@ -1,0 +1,36 @@
+================================================
+        VIRTUALBOX CLI CHEAT SHEET
+================================================
+
+[ VM MANAGEMENT ]
+----------------
+List all VMs
+    VBoxManage list vms
+
+List running VMs
+    VBoxManage list runningvms
+
+Start VM (headless)
+    VBoxManage startvm "UbuntuServer" --type headless
+
+Graceful shutdown
+    VBoxManage controlvm "UbuntuServer" acpipowerbutton
+
+Force stop
+    VBoxManage controlvm "UbuntuServer" poweroff
+
+
+[ NETWORKING / PORT FORWARDING ]
+--------------------------------
+Forward host port 2222 → guest port 22
+    VBoxManage modifyvm "UbuntuServer" --natpf1 "ssh,tcp,,2222,,22"
+
+Format:
+    "rule-name,protocol,[host-ip],host-port,[guest-ip],guest-port"
+
+
+[ AUTO-START VM ]
+-----------------
+Enable auto-start on host boot
+    VBoxManage modifyvm "UbuntuServer" --autostart-enabled on
+

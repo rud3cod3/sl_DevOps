@@ -1,0 +1,22 @@
+# Show all interfaces and IPs
+ip addr show
+
+# Bring host-only interface up
+sudo ip link set enp0s8 up
+
+# Assign static IP to host-only interface
+sudo ip addr add 192.168.56.101/24 dev enp0s8
+
+# (Optional) Add default gateway
+sudo ip route add default via 192.168.56.1 dev enp0s8
+
+# Or use DHCP
+sudo dhclient enp0s8
+
+# Verify IP assignment
+ip addr show enp0s8
+
+# Test connectivity
+ping 192.168.56.1   " host
+ping 8.8.8.8        " internet
+

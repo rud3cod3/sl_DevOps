@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    environment {
+        // Git repo info
+        GIT_REPO = 'https://github.com/yourusername/yourrepo.git'
+        BRANCH = 'main'
+
+        // EC2 target details
+        DEPLOY_USER = 'ubuntu'
+        DEPLOY_HOST = '65.0.30.102'
+        APP_DIR = '/var/www/html/'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: "${BRANCH}", url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building project...'
+                // Add your build commands here (npm install, mvn package, etc.)
+                sh 'echo "Build successful!"'
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['ec2-deploy-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} '
+                            sudo mkdir -p ${APP_DIR} &&
+                            sudo chown -R ${DEPLOY_USER}:${DEPLOY_USER} ${APP_DIR}
+                        '
+
+                        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ ${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/
+
+                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} '
+                            cd ${APP_DIR} &&
+                            sudo systemctl restart nginx || echo "No Nginx service" &&
+                            sudo systemctl restart your-app.service || echo "No custom app service"
+                        '
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Deployment completed successfully!'
+        }
+        failure {
+            echo '❌ Deployment failed. Check logs.'
+        }
+    }
+}

@@ -1,0 +1,29 @@
+# Remove the existing Host-Only network
+# Do not run if you just started Using/Installed VM
+VBoxManage hostonlyif remove vboxnet0
+
+# Create a new Host-Only network and configure it:
+VBoxManage hostonlyif create
+VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.56.1 --netmask 255.255.255.0
+
+# Add and enable DHCP for it
+VBoxManage dhcpserver add --netname HostInterfaceNetworking-vboxnet0 \
+    --ip 192.168.56.2 --netmask 255.255.255.0 \
+    --lowerip 192.168.56.100 --upperip 192.168.56.254 \
+    --enable
+
+# Verify
+VBoxManage list hostonlyifs
+VBoxManage list dhcpservers
+
+# Update each VM
+# Now open VirtualBox GUI → Settings → Network for each VM:
+# Adapter 1 → NAT (keep this for internet)
+# Adapter 2 → Host-only Adapter → choose vboxnet0
+# Then run "startallvm.sh" script or boot all vm manually from VBoxManager
+
+# Refresh IP inside each VM
+# Inside each Ubuntu VM:
+sudo dhclient -r enp0s8
+sudo dhclient enp0s8
+ip addr show enp0s8

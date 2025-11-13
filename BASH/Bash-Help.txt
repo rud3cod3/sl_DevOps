@@ -1,0 +1,4 @@
+# Linux bash scripting notes
+
+expr		 		# Use This Perform Arithmatic Operation (expr 6 + 2)
+echo $(( 6+3 ))  		# Or We can make use of this

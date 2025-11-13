@@ -1,0 +1,227 @@
+==========================================
+      GIT PLUMBING COMMANDS (BEGINNER → EXPERT)
+==========================================
+Author: riley escobar
+Description: Deep Git plumbing reference notes
+==========================================
+
+# INTRODUCTION
+# -------------
+# Git commands are divided into two layers:
+# - PORCELAIN: High-level user commands (e.g. git add, git commit, git push)
+# - PLUMBING: Low-level commands (internal building blocks of git)
+
+# Plumbing commands give direct control over:
+# - Objects (blobs, trees, commits, tags)
+# - References and hashes
+# - Internal data flows between working tree, index, and object database
+
+
+# BASIC CONCEPTS
+# ---------------
+# Working Directory   ->  Index (Staging Area)  ->  Object Database (.git/objects)
+# HEAD points to a branch ref which points to the latest commit
+# Plumbing commands interact directly with these layers
+
+
+==========================================
+      LEVEL 1 – BEGINNER PLUMBING
+==========================================
+
+## git hash-object
+# Creates a Git object (blob) and returns its SHA-1 hash
+git hash-object -w file.txt
+# -w: write to object database (.git/objects)
+# Useful for understanding how Git stores content
+
+## git cat-file
+# View information about Git objects (blob, tree, commit, tag)
+git cat-file -p <hash>     # Pretty-print content
+git cat-file -t <hash>     # Type (blob/tree/commit/tag)
+git cat-file -s <hash>     # Size in bytes
+
+## git ls-tree
+# Lists tree (directory) structure for a given commit/tree
+git ls-tree HEAD
+# Shows mode, type, hash, and filename
+# Example:
+# 100644 blob 9a4d56...   file.txt
+
+## git rev-parse
+# Parses revision parameters and converts them to SHA-1 hashes
+git rev-parse HEAD
+git rev-parse --abbrev-ref HEAD  # Shows branch name
+git rev-parse HEAD^{tree}        # Shows tree hash of current commit
+
+## git update-index
+# Manipulate the staging area directly
+git update-index --add file.txt
+git update-index --cacheinfo 100644 <hash> path
+# Can stage blobs manually without "git add"
+
+## git write-tree
+# Creates a tree object from the index
+git write-tree
+# Output is a tree hash – represents current staged state
+
+## git commit-tree
+# Creates a commit object manually from a tree
+git commit-tree <tree_hash> -p <parent_commit> -m "message"
+# Low-level version of "git commit"
+
+==========================================
+      LEVEL 2 – INTERMEDIATE PLUMBING
+==========================================
+
+## git mktree
+# Reads tree structure from stdin and writes a tree object
+cat <<EOF | git mktree
+100644 blob <hash>    file1.txt
+100644 blob <hash>    file2.txt
+EOF
+
+## git mktag
+# Creates an annotated tag object manually
+cat <<EOF | git mktag
+object <commit_hash>
+type commit
+tag v1.0
+tagger Riley <riley@example.com> 1731250000 +0530
+
+Version 1.0 release
+EOF
+
+## git for-each-ref
+# Iterate over refs (branches, tags)
+git for-each-ref --format="%(refname:short) -> %(objectname:short)"
+
+## git symbolic-ref
+# Manage symbolic references (like HEAD)
+git symbolic-ref HEAD refs/heads/main
+git symbolic-ref --short HEAD   # Show current branch name
+
+## git update-ref
+# Update or create refs manually
+git update-ref refs/heads/dev <commit_hash>
+# Equivalent to moving a branch pointer
+
+## git show-ref
+# Show all references and their hashes
+git show-ref
+
+## git pack-objects / git unpack-objects
+# Pack or unpack loose objects (optimization)
+git pack-objects pack-name < list-of-hashes
+git unpack-objects < pack-file
+
+==========================================
+      LEVEL 3 – ADVANCED PLUMBING
+==========================================
+
+## git replace
+# Create a ref that replaces one object with another
+git replace <old_hash> <new_hash>
+# Used for rewriting history without changing commits physically
+
+## git verify-pack
+# Check integrity of packfiles
+git verify-pack -v .git/objects/pack/*.idx
+
+## git show-index
+# Display contents of pack index files
+git show-index < .git/objects/pack/pack-*.idx
+
+## git unpack-file
+# Extracts a blob from the object database
+git unpack-file <hash>
+# Restores a blob to a temporary file (useful for recovery)
+
+## git check-ref-format
+# Validate ref names (branch, tag)
+git check-ref-format refs/heads/dev-feature
+
+## git cat-file --batch / --batch-check
+# Efficiently inspect multiple objects
+git cat-file --batch-check < objects.txt
+# Useful in scripts processing large repos
+
+## git fsck
+# Verify internal integrity of all Git objects
+git fsck --full
+# Checks missing/blobs/trees/commits consistency
+
+## git count-objects
+# Count number and disk usage of loose objects
+git count-objects -v
+
+==========================================
+      LEVEL 4 – EXPERT / INTERNAL USE
+==========================================
+
+## git read-tree
+# Read a tree into the index
+git read-tree <tree_hash>
+# Replaces staged files with contents of that tree
+
+## git diff-index
+# Compare working directory or index with a tree
+git diff-index HEAD
+
+## git diff-tree
+# Compare two tree objects directly
+git diff-tree -r <commit1> <commit2>
+
+## git merge-base
+# Find common ancestor (merge base) of commits
+git merge-base <commit1> <commit2>
+
+## git rev-list
+# List commit hashes in chronological order
+git rev-list --all
+git rev-list HEAD --max-parents=0  # First commit
+
+## git apply / git diff-files
+# git apply: apply a patch
+# git diff-files: compare working directory and index
+git diff-files
+git apply patch.diff
+
+## git ls-files
+# Show all files in index
+git ls-files --stage
+
+==========================================
+      INTERNAL DATA FLOW SUMMARY
+==========================================
+# 1. Write blob
+#    hash=$(git hash-object -w file.txt)
+# 2. Add to index
+#    git update-index --add --cacheinfo 100644 $hash file.txt
+# 3. Write tree
+#    tree=$(git write-tree)
+# 4. Create commit
+#    commit=$(echo "Manual commit" | git commit-tree $tree)
+# 5. Update branch ref
+#    git update-ref refs/heads/main $commit
+
+==========================================
+      DEBUGGING AND INSPECTION COMMANDS
+==========================================
+git show-index                   # List objects in pack index
+git verify-pack -v packfile.idx  # Validate pack
+git reflog                       # Shows movement of HEAD
+git fsck                         # Integrity check
+git show <hash>                  # View any object
+git cat-file -p <hash>           # Decode content
+
+==========================================
+      TIPS
+==========================================
+# 1. Plumbing commands are script-friendly.
+# 2. Porcelain commands are user-friendly.
+# 3. Plumbing gives you *complete control* over Git internals.
+# 4. Always use a test repo before experimenting.
+# 5. git cat-file, git hash-object, git write-tree, git commit-tree
+#    together can rebuild the entire repo structure manually.
+
+Ref : https://medium.com/frontend-canteen/git-plumbing-commands-db5117aa91e0
